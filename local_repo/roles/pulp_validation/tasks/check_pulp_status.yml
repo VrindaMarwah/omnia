@@ -40,6 +40,6 @@
   until: result.status == 200
 
 - name: Fail when Pulp endpoint is not up
-  ansible.builtin.debug:
+  ansible.builtin.fail:
     msg: "{{ pulp_status_fail_msg }}"
   when: result.status != 200
