@@ -19,10 +19,18 @@
 - name: Deployment prereq
   ansible.builtin.include_tasks: deployment_prereq.yml
 
+- name: Upgrade from legacy to fabrica-based OpenCHAMI
+  ansible.builtin.include_tasks: upgrade_openchami.yml
+  when: hostvars['oim']['openchami_upgrade_required'] | default(false)
+
 - name: Deploy openchami
   ansible.builtin.include_tasks: deploy_openchami.yml
-  when: not hostvars['oim']['openchami_install_status']
+  when:
+    - not hostvars['oim']['openchami_install_status']
+    - not hostvars['oim']['openchami_upgrade_required'] | default(false)
 
 - name: Refresh openchami network configs
   ansible.builtin.include_tasks: refresh_openchami_configs.yml
-  when: hostvars['oim']['openchami_install_status']
+  when:
+    - hostvars['oim']['openchami_install_status']
+    - not hostvars['oim']['openchami_upgrade_required'] | default(false)

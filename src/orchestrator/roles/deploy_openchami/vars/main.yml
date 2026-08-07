@@ -30,32 +30,32 @@ orchestrator_config_syntax_fail_msg: "Failed. Syntax errors present in orchestra
 pull_image_retries: 5
 pull_image_delay: 10
 
-# OpenCHAMI image tags
+# OpenCHAMI image tags (fabrica-based architecture)
 openchami_local_ca_tag: "v0.2.6"
-openchami_opaal_tag: "v0.3.12"
-openchami_smd_tag: "v2.19.3"
-openchami_bss_tag: "v1.32.2"
-openchami_cloud_init_tag: "v1.3.0"
-openchami_coresmd_tag: "v0.4.3"
+openchami_smd_tag: "v2.20.5"
+openchami_boot_service_tag: "v0.3.1"
+openchami_metadata_service_tag: "v0.2.1"
+openchami_tokensmith_tag: "v0.4.1"
+openchami_coresmd_tag: "v0.7.0"
 # Third-party image tags for OpenCHAMI
+minio_release_tag: "RELEASE.2026-04-17T00-00-00Z"
 postgres_tag: "11.5-alpine"
-hydra_tag: "v2.3"
 haproxy_tag: "latest"
-curl_tag: "latest"
+registry_tag: "3.1.0"
 acme_tag: "3.1.1"
 
 # OpenCHAMI images list for podman pull on OIM
 openchami_images:
   - "ghcr.io/openchami/local-ca:{{ openchami_local_ca_tag }}"
-  - "ghcr.io/openchami/opaal:{{ openchami_opaal_tag }}"
   - "ghcr.io/openchami/smd:{{ openchami_smd_tag }}"
-  - "ghcr.io/openchami/bss:{{ openchami_bss_tag }}"
-  - "ghcr.io/openchami/cloud-init:{{ openchami_cloud_init_tag }}"
+  - "ghcr.io/openchami/boot-service:{{ openchami_boot_service_tag }}"
+  - "ghcr.io/openchami/metadata-service:{{ openchami_metadata_service_tag }}"
+  - "ghcr.io/openchami/tokensmith:{{ openchami_tokensmith_tag }}"
   - "ghcr.io/openchami/coresmd:{{ openchami_coresmd_tag }}"
+  - "docker.io/pgsty/minio:{{ minio_release_tag }}"
   - "docker.io/library/postgres:{{ postgres_tag }}"
-  - "docker.io/oryd/hydra:{{ hydra_tag }}"
   - "cgr.dev/chainguard/haproxy:{{ haproxy_tag }}"
-  - "cgr.dev/chainguard/curl:{{ curl_tag }}"
+  - "docker.io/library/registry:{{ registry_tag }}"
   - "docker.io/neilpang/acme.sh:{{ acme_tag }}"
 
 # Usage: verify_openchami.yml
@@ -77,9 +77,9 @@ ochami_cli_log_level: warning
 ochami_cli_log_format: rfc3339
 ochami_base_url: "https://{{ cluster_name }}.{{ cluster_domain }}:8443"
 
-# OpenCHAMI RPM packages
-openchami_rpm_url: https://github.com/OpenCHAMI/release/releases/download/v0.1.5/openchami-0.1.5.rpm
-openchami_rpm_name: openchami-0.1.5.rpm
+# OpenCHAMI RPM packages (fabrica-based v0.1.6)
+openchami_rpm_file: "{{ role_path }}/files/openchami-0.1.6-1.noarch.rpm"
+openchami_rpm_name: openchami-0.1.6-1.noarch.rpm
 ochami_client_rpm_url: https://github.com/OpenCHAMI/ochami/releases/download/v0.7.1/ochami_0.7.1_linux_amd64.rpm
 ochami_client_rpm_name: ochami_0.7.1_linux_amd64.rpm
 
@@ -143,3 +143,33 @@ coredhcp_tmp_lease_duration: "5m"
 coredhcp_cache_validity: "30s"
 coredhcp_custom_ipxe: "default"
 coredhcp_tftp_single_port_mode: true
+
+# Usage: upgrade_openchami.yml - legacy (pre-fabrica) services to remove
+openchami_legacy_containers:
+  - bss
+  - bss-init
+  - opaal
+  - opaal-idp
+  - cloud-init-server
+  - hydra
+
+openchami_legacy_container_files:
+  - /etc/containers/systemd/bss.container
+  - /etc/containers/systemd/bss-init.container
+  - /etc/containers/systemd/opaal.container
+  - /etc/containers/systemd/opaal-idp.container
+  - /etc/containers/systemd/cloud-init-server.container
+  - /etc/containers/systemd/hydra.container
+
+openchami_legacy_secrets:
+  - hydra_postgres_password
+  - hydra_dsn
+  - hydra_system_secret
+  - bss_postgres_password
+
+openchami_legacy_images:
+  - "ghcr.io/openchami/opaal"
+  - "ghcr.io/openchami/bss"
+  - "ghcr.io/openchami/cloud-init"
+  - "docker.io/oryd/hydra"
+  - "cgr.dev/chainguard/curl"

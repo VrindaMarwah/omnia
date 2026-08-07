@@ -13,15 +13,11 @@
 # limitations under the License.
 ---
 
-- name: Download the openchami RPM file
-  ansible.builtin.get_url:
-    url: "{{ openchami_rpm_url }}"
+- name: Copy the openchami RPM file
+  ansible.builtin.copy:
+    src: "{{ openchami_rpm_file }}"
     dest: "{{ openchami_work_dir }}/{{ openchami_rpm_name }}"
     mode: "{{ file_perm_rwx }}"
-  register: download_openchami
-  until: download_openchami is not failed
-  retries: "{{ max_retries }}"
-  delay: "{{ max_delay }}"
 
 - name: Install the openchami
   ansible.builtin.dnf:
@@ -31,7 +27,7 @@
 
 - name: Check if OpenCHAMI quadlet files exist
   ansible.builtin.stat:
-    path: /etc/containers/systemd/opaal.container
+    path: /etc/containers/systemd/boot-service.container
   register: openchami_quadlet_check
   when: additional_subnets | default([]) | length > 0
 
@@ -45,9 +41,64 @@
     - additional_subnets | default([]) | length > 0
     - not (openchami_quadlet_check.stat.exists | default(true))
 
-- name: Configure cluster FQDN for certificates
-  ansible.builtin.command: sudo openchami-certificate-update update {{ cluster_name }}.{{ cluster_domain }}
-  changed_when: true
+- name: Update openchami.env with cluster settings
+  ansible.builtin.lineinfile:
+    path: /etc/openchami/configs/openchami.env
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^SYSTEM_NAME=', line: 'SYSTEM_NAME={{ cluster_name }}' }
+    - { regexp: '^SYSTEM_DOMAIN=', line: 'SYSTEM_DOMAIN={{ cluster_domain }}' }
+    - { regexp: '^SYSTEM_URL=', line: 'SYSTEM_URL={{ cluster_name }}.{{ cluster_domain }}' }
+    - { regexp: '^URLS_SELF_ISSUER=', line: 'URLS_SELF_ISSUER=https://{{ cluster_name }}.{{ cluster_domain }}' }
+    - { regexp: '^URLS_SELF_PUBLIC=', line: 'URLS_SELF_PUBLIC=https://{{ cluster_name }}.{{ cluster_domain }}' }
+    - { regexp: '^URLS_LOGIN=', line: 'URLS_LOGIN=https://{{ cluster_name }}.{{ cluster_domain }}/login' }
+    - { regexp: '^URLS_CONSENT=', line: 'URLS_CONSENT=https://{{ cluster_name }}.{{ cluster_domain }}/consent' }
+    - { regexp: '^URLS_LOGOUT=', line: 'URLS_LOGOUT=https://{{ cluster_name }}.{{ cluster_domain }}/logout' }
+    - { regexp: '^DOCKER_STEPCA_INIT_DNS_NAMES=', line: 'DOCKER_STEPCA_INIT_DNS_NAMES=step-ca,step-ca.{{ cluster_domain }}' }
+    - { regexp: '^TOKENSMITH_CLUSTER_ID=', line: 'TOKENSMITH_CLUSTER_ID={{ cluster_name }}-cluster' }
+    - { regexp: '^TOKENSMITH_OPENCHAMI_ID=', line: 'TOKENSMITH_OPENCHAMI_ID={{ cluster_name }}-openchami' }
+  loop_control:
+    label: "{{ item.regexp }}"
+
+- name: Update tokensmith container with correct FQDN
+  ansible.builtin.replace:
+    path: /etc/containers/systemd/tokensmith.container
+    regexp: "--add-host='[^']*'"
+    replace: "--add-host='{{ cluster_name }}.{{ cluster_domain }}:{{ cluster_boot_ip }}'"
+
+- name: Update acme-register ContainerName and HostName
+  ansible.builtin.replace:
+    path: /etc/containers/systemd/acme-register.container
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  loop:
+    - { regexp: '^ContainerName=.*', replace: 'ContainerName={{ cluster_name }}.{{ cluster_domain }}' }
+    - { regexp: '^HostName=.*', replace: 'HostName={{ cluster_name }}.{{ cluster_domain }}' }
+
+- name: Update acme-deploy domain
+  ansible.builtin.replace:
+    path: /etc/containers/systemd/acme-deploy.container
+    regexp: '-d .* \\'
+    replace: '-d {{ cluster_name }}.{{ cluster_domain }} \'
+
+- name: Update acme-register domain
+  ansible.builtin.replace:
+    path: /etc/containers/systemd/acme-register.container
+    regexp: '-d .* \\'
+    replace: '-d {{ cluster_name }}.{{ cluster_domain }} \'
+
+- name: Template boot-service config with legacy API enabled
+  ansible.builtin.template:
+    src: boot-service.yaml.j2
+    dest: "{{ openchami_config_dir }}/boot-service.yaml"
+    mode: "{{ file_perm_rw }}"
+
+- name: Template haproxy config with backward-compatible routes
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: "{{ openchami_config_dir }}/haproxy.cfg"
+    mode: "{{ file_perm_rw }}"
 
 - name: Download the ochami client RPM file
   ansible.builtin.get_url:
