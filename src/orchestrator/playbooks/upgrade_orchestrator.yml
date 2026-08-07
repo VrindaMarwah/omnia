@@ -187,11 +187,12 @@
       changed_when: false
 
     - name: Verify boot-service health
-      ansible.builtin.command: systemctl is-active boot-service.service
+      ansible.builtin.systemd:
+        name: boot-service.service
       register: boot_service_post_status
       retries: 5
       delay: 10
-      until: boot_service_post_status.rc == 0
+      until: boot_service_post_status.status.ActiveState == "active"
       changed_when: false
 
     - name: Post-upgrade health summary
@@ -200,7 +201,7 @@
           Upgrade health check passed.
           openchami.target={{ openchami_target_post.status.ActiveState }},
           SMD={{ 'OK' if smd_post_status.rc == 0 else 'FAIL' }},
-          Boot-Service={{ 'OK' if boot_service_post_status.rc == 0 else 'FAIL' }}.
+          Boot-Service={{ 'OK' if boot_service_post_status.status.ActiveState == 'active' else 'FAIL' }}.
   tags: always
 
 - name: Finalize upgrade

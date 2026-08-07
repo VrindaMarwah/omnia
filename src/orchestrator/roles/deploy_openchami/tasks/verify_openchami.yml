@@ -61,15 +61,15 @@
         verbosity: 2
 
     - name: Verify boot-service is active
-      ansible.builtin.command:
-        systemctl is-active boot-service.service
+      ansible.builtin.systemd:
+        name: boot-service.service
       register: boot_service_status
       changed_when: false
       failed_when: false
 
     - name: Verify tokensmith is active
-      ansible.builtin.command:
-        systemctl is-active tokensmith.service
+      ansible.builtin.systemd:
+        name: tokensmith.service
       register: tokensmith_status
       changed_when: false
       failed_when: false
@@ -79,6 +79,6 @@
         openchami_install_status: true
       when:
         - openchami_smd_status.rc == 0
-        - boot_service_status.rc == 0
-        - tokensmith_status.rc == 0
+        - boot_service_status.status.ActiveState == "active"
+        - tokensmith_status.status.ActiveState == "active"
         - not openchami_upgrade_required

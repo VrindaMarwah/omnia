@@ -40,10 +40,10 @@
         msg: "{{ openchami_dependencies.stdout_lines }}"
 
     - name: Verify boot-service is active
-      ansible.builtin.command:
-        systemctl is-active boot-service.service
+      ansible.builtin.systemd:
+        name: boot-service.service
       register: openchami_boot_service_status
-      until: openchami_boot_service_status.rc == 0
+      until: openchami_boot_service_status.status.ActiveState == "active"
       retries: "{{ max_retries }}"
       delay: "{{ max_delay }}"
       changed_when: false
@@ -52,7 +52,7 @@
     - name: Fail if boot-service is not running
       ansible.builtin.fail:
         msg: "boot-service is not running after {{ max_retries }} retries."
-      when: openchami_boot_service_status.rc != 0
+      when: openchami_boot_service_status.status.ActiveState != "active"
 
     - name: Verify ochami smd status
       ansible.builtin.command:

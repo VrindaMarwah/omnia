@@ -51,14 +51,14 @@
       until: boot_service_health.status == 200
 
     - name: Verify tokensmith is reachable
-      ansible.builtin.command:
-        systemctl is-active tokensmith.service
+      ansible.builtin.systemd:
+        name: tokensmith.service
       register: tokensmith_health
       changed_when: false
-      failed_when: tokensmith_health.rc != 0
+      failed_when: tokensmith_health.status.ActiveState != "active"
       retries: 3
       delay: 5
-      until: tokensmith_health.rc == 0
+      until: tokensmith_health.status.ActiveState == "active"
 
     - name: Set openchami_ready fact
       ansible.builtin.set_fact:
@@ -75,4 +75,4 @@
           OpenCHAMI is not ready for provisioning. Check that all services are
           running and accessible. SMD: {{ smd_health.status | default('N/A') }},
           Boot-Service: {{ boot_service_health.status | default('N/A') }},
-          Tokensmith: {{ tokensmith_health.rc | default('N/A') }}.
+          Tokensmith: {{ tokensmith_health.status.ActiveState | default('N/A') }}.
