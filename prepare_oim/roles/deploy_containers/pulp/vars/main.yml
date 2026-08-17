@@ -18,6 +18,18 @@ pulp_shared_path: "{{ shared_storage_path }}/pulp"
 pulp_logs_dir: "{{ oim_shared_path }}/omnia/log/pulp"
 pulp_dir_permissions: "0755"
 pulp_pgsql_dir_permissions: "0750"
+# Flag to control whether PostgreSQL data is stored on local disk or NFS.
+# When true, pgsql is mounted from a local disk path (requires POSIX fsync and file locking).
+# When false (default), pgsql is mounted from NFS shared storage.
+pgsql_local_disk: false
+# PostgreSQL data on local disk — used only when pgsql_local_disk is true
+pulp_pgsql_local_dir: "/var/lib/omnia/pulp/pgsql"
+# PostgreSQL data on NFS — used only when pgsql_local_disk is false
+pulp_pgsql_nfs_dir: "{{ oim_shared_path }}/pulp/settings"
+# Resolved pgsql directory based on the flag
+pulp_pgsql_dir: "{{ pulp_pgsql_local_dir if pgsql_local_disk | bool else pulp_pgsql_nfs_dir }}"
+# SELinux volume option for pgsql mount — :z for local disk, selinux_option for NFS
+pulp_pgsql_vol_option: "{{ ':z' if pgsql_local_disk | bool else selinux_option }}"
 logs_dir_permission: "0644"
 pulp_ha_dir: "/opt/omnia/pulp/pulp_ha"
 settings_py_path: "{{ pulp_shared_path }}/settings/settings.py"
@@ -58,7 +70,7 @@ pulp_directories_http:
   - { path: "{{ pulp_logs_dir }}", mode: "{{ logs_dir_permission }}" }
   - { path: "{{ pulp_shared_path }}/settings/certs", mode: "{{ pulp_dir_permissions }}" }
   - { path: "{{ pulp_shared_path }}/settings/pulp_storage", mode: "{{ pulp_dir_permissions }}" }
-  - { path: "{{ pulp_shared_path }}/settings/pgsql", mode: "{{ pulp_pgsql_dir_permissions }}" }
+  - { path: "{{ pulp_pgsql_dir }}", mode: "{{ pulp_pgsql_dir_permissions }}" }
   - { path: "{{ pulp_shared_path }}/settings/containers", mode: "{{ pulp_dir_permissions }}" }
   - { path: "{{ pulp_shared_path }}/pulp_ha", mode: "{{ pulp_dir_permissions }}" }
 pulp_container_port_http: "2225"
@@ -66,7 +78,7 @@ pulp_port: "2225:80"
 volumes_http:
   - "{{ pulp_shared_path }}/settings:/etc/pulp{{ selinux_option }}"
   - "{{ pulp_shared_path }}/settings/pulp_storage:/var/lib/pulp{{ selinux_option }}"
-  - "{{ pulp_shared_path }}/settings/pgsql:/var/lib/pgsql{{ selinux_option }}"
+  - "{{ pulp_pgsql_dir }}:/var/lib/pgsql{{ pulp_pgsql_vol_option }}"
   - "{{ pulp_shared_path }}/settings/containers:/var/lib/containers{{ selinux_option }}"
   - "{{ shared_storage_path }}/log/pulp:/var/log/pulp{{ selinux_option }}"
   - "{{ pulp_shared_path }}/pulp_ha:/root/.config/pulp{{ selinux_option }}"
@@ -78,7 +90,7 @@ pulp_directories_https:
   - { path: "{{ pulp_logs_dir }}", mode: "{{ logs_dir_permission }}" }
   - { path: "{{ pulp_shared_path }}/settings/certs", mode: "{{ pulp_dir_permissions }}" }
   - { path: "{{ pulp_shared_path }}/settings/pulp_storage", mode: "{{ pulp_dir_permissions }}" }
-  - { path: "{{ pulp_shared_path }}/settings/pgsql", mode: "{{ pulp_pgsql_dir_permissions }}" }
+  - { path: "{{ pulp_pgsql_dir }}", mode: "{{ pulp_pgsql_dir_permissions }}" }
   - { path: "{{ pulp_shared_path }}/settings/containers", mode: "{{ pulp_dir_permissions }}" }
   - { path: "{{ pulp_shared_path }}/pulp_ha", mode: "{{ pulp_dir_permissions }}" }
   - { path: "{{ pulp_shared_path }}/nginx", mode: "{{ pulp_dir_permissions }}" }
@@ -88,7 +100,7 @@ settings_tmp_path: "{{ role_path }}/templates/settings_template.j2"
 volumes_https:
   - "{{ pulp_shared_path }}/settings:/etc/pulp{{ selinux_option }}"
   - "{{ pulp_shared_path }}/settings/pulp_storage:/var/lib/pulp{{ selinux_option }}"
-  - "{{ pulp_shared_path }}/settings/pgsql:/var/lib/pgsql{{ selinux_option }}"
+  - "{{ pulp_pgsql_dir }}:/var/lib/pgsql{{ pulp_pgsql_vol_option }}"
   - "{{ pulp_shared_path }}/settings/containers:/var/lib/containers{{ selinux_option }}"
   - "{{ shared_storage_path }}/log/pulp:/var/log/pulp{{ selinux_option }}"
   - "{{ pulp_shared_path }}/pulp_ha:/root/.config/pulp{{ selinux_option }}"

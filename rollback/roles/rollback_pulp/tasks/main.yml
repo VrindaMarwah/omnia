@@ -49,7 +49,7 @@
 - name: Derive OIM host-side Pulp paths
   ansible.builtin.set_fact:
     oim_host_pulp_data_base: "{{ oim_shared_path }}/omnia/pulp/settings"
-    oim_host_pgsql_path: "{{ oim_shared_path }}/omnia/pulp/settings/pgsql"
+    oim_host_pgsql_path: "{{ pulp_pgsql_path }}"
     oim_host_backup_dir: "{{ oim_shared_path }}/omnia/backups/upgrade/version_2.1.0.0/pulp"
     oim_host_pgsql_backup: "{{ oim_shared_path }}/omnia/backups/upgrade/version_2.1.0.0/pulp/pgsql"
     oim_host_rollback_backup_dir: >-

@@ -27,6 +27,11 @@ omnia_target: "/etc/systemd/system/omnia.target"
 # Usage: cleanup_pulp.yml
 pulp_protocol_https: true
 pulp_container_name: "pulp"
+# Flag to control whether PostgreSQL data is stored on local disk or NFS.
+# When true, pgsql is on local disk and its directory is included in cleanup.
+# When false (default), pgsql is on NFS (already covered by pulp/settings cleanup).
+pgsql_local_disk: false
+pulp_pgsql_local_dir: "/var/lib/omnia/pulp/pgsql"
 pulp_cleanup_directory:
   - "{{ omnia_nfs_share }}/pulp/pulp_ha/cli.toml"
   - "{{ omnia_nfs_share }}/log/pulp"
@@ -37,6 +42,9 @@ pulp_cleanup_directory:
   - "{{ omnia_nfs_share }}/log/local_repo"
   - "{{ omnia_nfs_share }}/k8s_dynamic_json"
   - "{{ omnia_nfs_share }}/rhel_repo_certs"
+# Local disk pgsql directory to clean up only when pgsql_local_disk is true
+pulp_pgsql_local_cleanup:
+  - "{{ pulp_pgsql_local_dir }}"
 track_file_path: "{{ omnia_nfs_share }}/pulp/pulp_crt_track.txt"
 
 # Usage: cleanup_openchami.yml

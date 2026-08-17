@@ -27,9 +27,12 @@
 - name: Backup Pulp PostgreSQL data
   pulp_pgsql_backup_restore:
     action: backup
-    src_path: "{{ pulp_pgsql_path }}"
-    dest_path: "{{ pulp_pgsql_backup_path }}"
-    backup_dir: "{{ pulp_backup_dir }}"
+    src_path: "{{ oim_host_pgsql_path }}"
+    dest_path: "{{ oim_host_pgsql_backup }}"
+    backup_dir: "{{ oim_host_backup_dir }}"
+  delegate_to: oim
+  delegate_facts: true
+  connection: ssh
   register: pulp_backup_result
 
 - name: Display backup result

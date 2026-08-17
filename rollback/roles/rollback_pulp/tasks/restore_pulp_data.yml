@@ -21,15 +21,18 @@
 # PG 16 data (from the upgrade) with the original PG 12/13 data in
 # a data_old.* directory.
 #
-# Runs inside omnia_core where backup and pgsql paths are accessible
-# via shared NFS storage at /opt/omnia/.
+# Delegates to OIM host where both the local pgsql path and NFS backup
+# path are accessible.
 # ===========================================================================
 
 - name: Restore Pulp PostgreSQL data for rollback
   pulp_pgsql_backup_restore:
     action: restore
-    backup_path: "{{ pulp_pgsql_backup_path }}"
-    dest_path: "{{ pulp_pgsql_path }}"
+    backup_path: "{{ oim_host_pgsql_backup }}"
+    dest_path: "{{ oim_host_pgsql_path }}"
+  delegate_to: oim
+  delegate_facts: true
+  connection: ssh
   register: pgsql_restore_result
 
 - name: Display restore result

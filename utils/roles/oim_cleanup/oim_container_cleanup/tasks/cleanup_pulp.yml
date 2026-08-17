@@ -72,6 +72,18 @@
   with_items:
     - "{{ pulp_cleanup_directory }}"
 
+- name: Remove local disk pgsql directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+    force: true
+  register: pgsql_local_deletion
+  until: pgsql_local_deletion is not failed
+  retries: "{{ max_retries }}"
+  with_items:
+    - "{{ pulp_pgsql_local_cleanup }}"
+  when: pgsql_local_disk | bool
+
 - name: Remove track file when pulp is in https
   ansible.builtin.file:
     path: "{{ track_file_path }}"

@@ -55,7 +55,17 @@ pulp_health_delay: 10
 # Pulp shared storage paths (OIM container paths)
 # These paths are inside the OIM container and mounted as volumes in the Pulp container
 pulp_data_base_path: "/opt/omnia/pulp/settings"
-pulp_pgsql_path: "{{ pulp_data_base_path }}/pgsql"
+
+# Flag to control whether PostgreSQL data is stored on local disk or NFS.
+# When true, pgsql is mounted from a local disk path (requires POSIX fsync and file locking).
+# When false (default), pgsql is mounted from NFS shared storage.
+pgsql_local_disk: false
+# PostgreSQL data on local disk — used only when pgsql_local_disk is true
+pulp_pgsql_local_dir: "/var/lib/omnia/pulp/pgsql"
+# PostgreSQL data on NFS — used only when pgsql_local_disk is false
+pulp_pgsql_nfs_dir: "{{ oim_shared_path }}/pulp/settings"
+# Resolved pgsql directory based on the flag
+pulp_pgsql_path: "{{ pulp_pgsql_local_dir if pgsql_local_disk | bool else pulp_pgsql_nfs_dir }}"
 
 # Backup settings
 # PostgreSQL data must be backed up before upgrade because:
