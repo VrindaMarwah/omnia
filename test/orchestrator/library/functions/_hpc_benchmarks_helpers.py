@@ -303,6 +303,25 @@ def read_pull_script_var(host, row, variable_name: str) -> str:
     return result.stdout.strip()
 
 
+def read_platform_helper_var(host, row, variable_name: str) -> str:
+    """Return the raw value of a shell variable set by omnia_platform.sh.
+
+    Sources omnia_platform.sh, runs omnia_detect_platform, and echoes the variable.
+    This is used for variables like OMNIA_OS_VERSION that are set by the
+    platform helper script function rather than as direct assignments.
+    """
+    if not re.fullmatch(r"[A-Z_][A-Z0-9_]*", variable_name):
+        raise ValueError(f"Unsafe variable name: {variable_name!r}")
+    result = remote_command(
+        host,
+        row,
+        PXEBOOT_COMMANDS["hpc_benchmarks_platform_helper_var"] % variable_name,
+    )
+    if result.rc != 0:
+        return ""
+    return result.stdout.strip()
+
+
 def pulp_tarball_directory(pulp_server: str, os_version: str, arch: str, tool: str) -> str:
     """Return the deployed script's canonical Pulp tarball URL for one tool."""
     return (

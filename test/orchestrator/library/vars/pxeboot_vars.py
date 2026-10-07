@@ -622,6 +622,9 @@ PXEBOOT_COMMANDS: dict[str, str] = {
     "hpc_benchmarks_pull_script_var": (
         "awk -F= '/^%s=/{sub(/^%s=/,\"\"); gsub(/^\"|\"$/,\"\"); print; exit}' %s"
     ),
+    "hpc_benchmarks_platform_helper_var": (
+        ". /hpc_tools/scripts/omnia_platform.sh && omnia_detect_platform && echo ${%s}"
+    ),
     "hpc_benchmarks_pulp_list": (
         "curl -ksfL --connect-timeout 5 --max-time 15 %s 2>/dev/null | "
         "grep -oE 'href=\"[^\"]+\"' | grep -vE '(\\.\\./|index\\.html)' | head -20"

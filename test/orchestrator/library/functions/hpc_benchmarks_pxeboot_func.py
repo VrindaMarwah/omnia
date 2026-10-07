@@ -57,6 +57,7 @@ from ._hpc_benchmarks_helpers import (
     read_benchmark_tools_list,
     read_directory_stat,
     read_pull_script_var,
+    read_platform_helper_var,
     rhel_version,
     run_pull_script,
     scan_for_binaries,
@@ -144,16 +145,17 @@ def check_hpc_benchmarks_local_repo_sync(host):
             return optional_skip(summary, "benchmark_tools.list is not deployed")
         tools = read_benchmark_tools_list(host, row)
         pulp_server = read_pull_script_var(host, row, "PULP_SERVER")
-        os_version = read_pull_script_var(host, row, "OS_VERSION")
+        # OS_VERSION is set by omnia_platform.sh, not directly in pull_benchmarks.sh
+        os_version = read_platform_helper_var(host, row, "OMNIA_OS_VERSION")
         if not pulp_server or not os_version:
             return runtime_result(
                 False,
                 summary,
                 [
                     ("PULP_SERVER", pulp_server or "<unset>"),
-                    ("OS_VERSION", os_version or "<unset>"),
+                    ("OMNIA_OS_VERSION", os_version or "<unset>"),
                 ],
-                "Cannot extract PULP_SERVER/OS_VERSION from pull_benchmarks.sh",
+                "Cannot extract PULP_SERVER/OMNIA_OS_VERSION from pull_benchmarks.sh/omnia_platform.sh",
             )
         arch_map = compute_architectures(host, computes)
         fields: list[tuple[str, object]] = [
