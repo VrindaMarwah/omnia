@@ -247,7 +247,7 @@ cleanup_k8s: true
 # Remove only tools downloaded in benchmark FVT workspaces, after all checks.
 # Applies on success and failure. Logs are saved under report_path/benchmarks.
 # False retains downloads and reports the workspace path for inspection.
-cleanup_benchmark_tools: true
+cleanup_benchmark_tools: false
 
 # =============================================================================
 # SLURM NODE REMOVE/ADD LIFECYCLE

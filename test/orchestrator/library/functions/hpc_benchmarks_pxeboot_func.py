@@ -469,8 +469,8 @@ def check_hpc_benchmarks_concurrent_staging(host):
         )
 
         # Wait for both
-        rc_a = wait_for_pid(host, node_a, pid_a)
-        rc_b = wait_for_pid(host, node_b, pid_b)
+        rc_a = wait_for_pid(host, node_a, pid_a, log_a)
+        rc_b = wait_for_pid(host, node_b, pid_b, log_b)
 
         # Fingerprint from both nodes
         fp_a = snapshot_tool_fingerprints(host, node_a, platform_a)
@@ -1212,9 +1212,10 @@ def check_hpc_benchmarks_container_first_guidance(host):
 def check_hpc_benchmarks_source_only_delivery(host):
     """Verify no compile commands ship with the script or the staged artifacts.
 
-    Scans only benchmark tool subdirectories — the framework-owned dirs
-    (cuda, nvidia_sdk, container_images, scripts) are excluded because
-    they legitimately contain third-party binaries.
+    Scans benchmark tool directories under the platform root
+    (e.g., /hpc_tools/platforms/rhel/{version}/{arch}/{tool}/) and excludes
+    framework-owned directories (cuda, nvidia_sdk, container_images, scripts)
+    that may appear as benchmark tool names.
     """
     summary = "HPC benchmarks source-only delivery"
     try:
@@ -1235,10 +1236,12 @@ def check_hpc_benchmarks_source_only_delivery(host):
             no_build = pull_script_forbids_build(host, row)
             scan_paths = source_only_scan_paths(host, row)
             binaries = scan_for_binaries(host, row, scan_paths) if scan_paths else []
+            platform_root = get_platform_root(host, row)
             fields.append(
                 (
                     f"  {row['HOSTNAME']}",
                     (
+                        f"platform_root={platform_root} "
                         f"no_build={no_build} scanned_dirs={len(scan_paths)} "
                         f"suspicious_binaries={len(binaries)}"
                     ),

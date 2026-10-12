@@ -223,26 +223,29 @@ def staged_tool_directories(host, row) -> list[str]:
 def source_only_scan_paths(host, row) -> list[str]:
     """Return the tool subdirectories eligible for the source-only scan.
 
-    We intentionally skip the framework-owned directories (cuda, nvidia_sdk,
-    container_images, scripts) so legitimate CUDA / NVHPC / container-runtime
-    binaries do not register as "pre-compiled benchmark artifacts".
-    
-    The exclusion is recursive: any path component matching a core subdir name
-    is excluded (e.g., /hpc_tools/platforms/rhel/10.0/x86_64/cuda/ is excluded
-    because 'cuda' is in the exclusion list).
+    Scans benchmark tool directories under the platform root
+    (e.g., /hpc_tools/platforms/rhel/10.0/x86_64/{tool}/) and excludes
+    framework-owned directories (cuda, nvidia_sdk, container_images, scripts)
+    that may appear as benchmark tool names.
     """
     from pathlib import Path
-    
-    all_dirs = staged_tool_directories(host, row)
+
+    # Get the platform root where benchmark tools are staged
+    platform_root = get_platform_root(host, row)
+    if not platform_root:
+        return []
+
+    # Get immediate children of the platform root (benchmark tool directories)
+    all_dirs = snapshot_directories(host, row, platform_root)
     excluded_names = _STAGING_EXCLUDED_SUBDIRS
-    
-    # Filter out directories where any path component is in the exclusion list
+
+    # Filter out directories whose name matches an excluded name
     scan_paths = []
     for path in all_dirs:
-        path_parts = Path(path).parts
-        if not any(part in excluded_names for part in path_parts):
+        dir_name = Path(path).name
+        if dir_name not in excluded_names:
             scan_paths.append(path)
-    
+
     return scan_paths
 
 
@@ -553,7 +556,7 @@ def run_pull_script_background(host, row, timeout_seconds: int, log_path: str):
         host,
         row,
         PXEBOOT_COMMANDS["hpc_benchmarks_run_pull_script_bg"]
-        % (timeout_seconds, HPC_BENCHMARKS_PULL_SCRIPT, HPC_TOOLS_BASE, log_path),
+        % (timeout_seconds, HPC_BENCHMARKS_PULL_SCRIPT, HPC_TOOLS_BASE, log_path, log_path),
     )
     pid = result.stdout.strip()
     if result.rc != 0 or not pid.isdigit():
@@ -561,12 +564,14 @@ def run_pull_script_background(host, row, timeout_seconds: int, log_path: str):
     return pid
 
 
-def wait_for_pid(host, row, pid: str, timeout_seconds: int = 700):
+def wait_for_pid(host, row, pid: str, log_path: str, timeout_seconds: int = 700):
     """Wait for a background PID and return its exit code."""
+    rc_file = f"{log_path}.rc"
     result = remote_command(
         host,
         row,
-        f"timeout {timeout_seconds} bash -c '{PXEBOOT_COMMANDS['hpc_benchmarks_wait_pid'] % (pid, pid)}'",
+        f"timeout {timeout_seconds} bash -c '"
+        f"{PXEBOOT_COMMANDS['hpc_benchmarks_wait_pid'] % (pid, rc_file)}'",
     )
     text = result.stdout.strip().splitlines()[-1] if result.stdout.strip() else ""
     try:
