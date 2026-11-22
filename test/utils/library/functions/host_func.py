@@ -156,6 +156,10 @@ _CREDENTIAL_PATTERNS = (
     "install_os_credentials.yml.*",
     ".install_os_credentials.key",
     ".install_os_credentials.key.*",
+    # OCI image ingest: credentials are Vault-encrypted, config is user-edited
+    "oci_image_ingest_credentials.yml",
+    "oci_image_ingest_credentials.yml.*",
+    "oci_image_ingest_config.yml",
 )
 _input_sync_ignore = shutil.ignore_patterns(*_CREDENTIAL_PATTERNS)
 _project_sync_ignore = shutil.ignore_patterns(
@@ -255,6 +259,23 @@ def _resolve_remote_clone_path(config: Dict[str, Any]) -> str:
             f"clone_path must be absolute for remote execution: {clone_path}"
         )
     return os.path.normpath(clone_path)
+
+
+def resolve_target_source_root() -> str:
+    """Resolve the Omnia source root for the current execution target.
+
+    Local execution reads directly from the current checkout.  Remote
+    execution reads from ``clone_path``, where the checkout is synced on the
+    target server.  This mirrors the path selection used by the shared
+    ``omnia_auto`` playbook runner.
+
+    Raises:
+        ValueError: If remote execution is selected without ``clone_path``.
+    """
+    if is_local_execution():
+        # Module root: test/utils/ -> repo root: omnia/
+        return os.path.dirname(os.path.dirname(MODULE_ROOT))
+    return _resolve_remote_clone_path(load_test_config())
 
 
 def _resolve_input_dir(config):
